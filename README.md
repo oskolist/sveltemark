@@ -124,6 +124,23 @@ pnpm build
 pnpm preview
 ```
 
+### Running with Docker
+
+```bash
+# Build and start the container
+docker-compose up --build
+
+# Or run in detached mode
+docker-compose up -d --build
+
+# Stop the container
+docker-compose down
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000).
+
+**Note:** The Docker setup uses `adapter-static` to generate static files served by nginx, which is different from the default Cloudflare adapter used for deployment.
+
 ## ⌨️ Keyboard Shortcuts
 
 ### Text Formatting
