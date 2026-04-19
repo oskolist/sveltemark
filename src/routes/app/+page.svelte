@@ -272,6 +272,12 @@
 		}, 120);
 	}
 
+	let cachedScrollMapping = $state<ScrollMappingData | null>(null);
+
+	function refreshScrollMapping() {
+		cachedScrollMapping = buildScrollMapping();
+	}
+
 	function handleEditorChange(content: string) {
 		appState.updateBuffer(content);
 		
@@ -299,6 +305,9 @@
 			}));
 			editorRef.measureSections?.(sections);
 		}
+
+		// Refresh the stable map after DOM measurements are complete
+		refreshScrollMapping();
 	}
 
 	// Track last scroll positions to avoid micro-updates
@@ -349,7 +358,7 @@
 	// For the preview, scrollTop = section.startOffset means that section is at viewport top.
 	// We also need to ensure scrolling to the END of editor maps to END of preview.
 	function syncEditorToPreview(editorScrollTop: number): number | null {
-		const mapping = buildScrollMapping();
+		const mapping = cachedScrollMapping;
 		if (!mapping || mapping.sections.length === 0) return null;
 		
 		const previewDims = previewRef?.getScrollDimensions?.();
@@ -425,7 +434,7 @@
 
 	// Map scroll position from preview to editor (mirror of above)
 	function syncPreviewToEditor(previewScrollTop: number): number | null {
-		const mapping = buildScrollMapping();
+		const mapping = cachedScrollMapping;
 		if (!mapping || mapping.sections.length === 0) return null;
 		
 		const editorDims = editorRef?.getScrollDimensions?.();
@@ -501,7 +510,6 @@
 	// Real-time scroll sync: Editor → Preview
 	function handleEditorScroll(scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number }) {
 		if (!appState.syncScrollEnabled || activePane !== 'editor' || isResizingLayout) return;
-		scheduleScrollRemeasure();
 		
 		// Skip micro-updates
 		const threshold = getScrollSyncThreshold();
@@ -523,7 +531,6 @@
 	// Real-time scroll sync: Preview → Editor (StackEdit-style)
 	function handlePreviewScroll(scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number }) {
 		if (!appState.syncScrollEnabled || activePane !== 'preview' || isResizingLayout) return;
-		scheduleScrollRemeasure();
 		
 		// Skip micro-updates
 		const threshold = getScrollSyncThreshold();
