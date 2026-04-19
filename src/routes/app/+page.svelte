@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { appState, Editor, Preview, Sidebar, Toolbar } from '$lib';
 	import { extractTableOfContents } from '$lib/markdown';
 	import 'katex/dist/katex.min.css';
@@ -27,7 +28,7 @@
 
 	// Load TOC state from localStorage
 	function loadTOCState() {
-		if (typeof localStorage !== 'undefined') {
+		if (browser) {
 			const savedTOC = localStorage.getItem('showTOC');
 			if (savedTOC !== null) showTOC = savedTOC === 'true';
 		}
@@ -35,7 +36,7 @@
 
 	// Save TOC state to localStorage
 	function saveTOCState() {
-		if (typeof localStorage !== 'undefined') {
+		if (browser) {
 			localStorage.setItem('showTOC', String(showTOC));
 		}
 	}
@@ -172,7 +173,7 @@
 
 	// Load saved layout from localStorage
 	function loadLayoutState() {
-		if (typeof localStorage !== 'undefined') {
+		if (browser) {
 			const savedSidebar = localStorage.getItem('sidebarWidth');
 			const savedEditor = localStorage.getItem('editorWidthPercent');
 			const savedShowSidebar = localStorage.getItem('showDesktopSidebar');
@@ -186,7 +187,7 @@
 
 	// Save layout state to localStorage
 	function saveLayoutState() {
-		if (typeof localStorage !== 'undefined') {
+		if (browser) {
 			localStorage.setItem('sidebarWidth', String(sidebarWidth));
 			localStorage.setItem('editorWidthPercent', String(editorWidthPercent));
 			localStorage.setItem('showDesktopSidebar', String(showDesktopSidebar));
@@ -200,7 +201,7 @@
 		editorWidthPercent = DEFAULT_EDITOR_PERCENT;
 		showDesktopSidebar = DEFAULT_SHOW_SIDEBAR;
 		tocWidth = DEFAULT_TOC_WIDTH;
-		if (typeof localStorage !== 'undefined') {
+		if (browser) {
 			localStorage.removeItem('sidebarWidth');
 			localStorage.removeItem('editorWidthPercent');
 			localStorage.removeItem('showDesktopSidebar');
@@ -254,8 +255,10 @@
 	});
 
 	// Track which pane initiated the scroll to prevent feedback loops
-	let scrollSource: 'editor' | 'preview' | null = null;
-	let scrollSourceTimeout: ReturnType<typeof setTimeout> | null = null;
+	let activePane = $state<'editor' | 'preview' | null>(null);
+	function handleEditorPointerOver() { activePane = 'editor'; }
+	function handlePreviewPointerOver() { activePane = 'preview'; }
+
 	let measureSectionsTimeout: ReturnType<typeof setTimeout> | null = null;
 	let scrollRemeasureTimeout: ReturnType<typeof setTimeout> | null = null;
 	let isResizingLayout = $derived(isResizingSidebar || isResizingEditor || isResizingTOC);
@@ -497,20 +500,13 @@
 
 	// Real-time scroll sync: Editor → Preview
 	function handleEditorScroll(scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number }) {
-		if (!appState.syncScrollEnabled) return;
-		if (scrollSource === 'preview') return;
-		if (isResizingLayout) return; // Don't sync during resize
+		if (!appState.syncScrollEnabled || activePane !== 'editor' || isResizingLayout) return;
 		scheduleScrollRemeasure();
 		
 		// Skip micro-updates
 		const threshold = getScrollSyncThreshold();
 		if (Math.abs(scrollInfo.scrollTop - lastEditorScrollTop) < threshold) return;
 		lastEditorScrollTop = scrollInfo.scrollTop;
-		
-		// Mark editor as scroll source
-		scrollSource = 'editor';
-		if (scrollSourceTimeout) clearTimeout(scrollSourceTimeout);
-		scrollSourceTimeout = setTimeout(() => { scrollSource = null; }, 100);
 		
 		// Use StackEdit-style section-based sync
 		const targetScroll = syncEditorToPreview(scrollInfo.scrollTop);
@@ -526,20 +522,13 @@
 
 	// Real-time scroll sync: Preview → Editor (StackEdit-style)
 	function handlePreviewScroll(scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number }) {
-		if (!appState.syncScrollEnabled) return;
-		if (scrollSource === 'editor') return;
-		if (isResizingLayout) return; // Don't sync during resize
+		if (!appState.syncScrollEnabled || activePane !== 'preview' || isResizingLayout) return;
 		scheduleScrollRemeasure();
 		
 		// Skip micro-updates
 		const threshold = getScrollSyncThreshold();
 		if (Math.abs(scrollInfo.scrollTop - lastPreviewScrollTop) < threshold) return;
 		lastPreviewScrollTop = scrollInfo.scrollTop;
-		
-		// Mark preview as scroll source
-		scrollSource = 'preview';
-		if (scrollSourceTimeout) clearTimeout(scrollSourceTimeout);
-		scrollSourceTimeout = setTimeout(() => { scrollSource = null; }, 100);
 		
 		// Use StackEdit-style section-based sync
 		const targetScroll = syncPreviewToEditor(scrollInfo.scrollTop);
@@ -941,7 +930,7 @@
 				<div class="editor-preview-container">
 					{#if !appState.viewOnlyMode && !isMobile}
 						<!-- Desktop: Show editor when not in view-only mode -->
-						<div class="editor-pane" style="flex: 0 0 {editorWidthPercent}%;">
+						<div class="editor-pane" style="flex: 0 0 {editorWidthPercent}%;" onpointerover={handleEditorPointerOver}>
 							<Editor
 								bind:this={editorRef}
 								value={appState.buffer}
@@ -960,7 +949,7 @@
 					{#if isMobile}
 						<!-- Mobile: Show either editor or preview based on view mode -->
 						{#if appState.viewOnlyMode}
-							<div class="preview-pane full-width">
+							<div class="preview-pane full-width" onpointerover={handlePreviewPointerOver}>
 								<Preview
 									bind:this={previewRef}
 									content={appState.buffer}
@@ -969,7 +958,7 @@
 								/>
 							</div>
 						{:else}
-							<div class="editor-pane full-width">
+							<div class="editor-pane full-width" onpointerover={handleEditorPointerOver}>
 								<Editor
 									bind:this={editorRef}
 									value={appState.buffer}
@@ -981,7 +970,7 @@
 						{/if}
 					{:else}
 						<!-- Desktop: Always show preview -->
-						<div class="preview-pane" class:full-width={appState.viewOnlyMode}>
+						<div class="preview-pane" class:full-width={appState.viewOnlyMode} onpointerover={handlePreviewPointerOver}>
 							<Preview
 								bind:this={previewRef}
 								content={appState.buffer}
