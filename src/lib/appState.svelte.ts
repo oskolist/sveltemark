@@ -1,3 +1,4 @@
+import { browser } from '$app/environment';
 import {
     type Folder,
     type File,
@@ -36,10 +37,10 @@ let isSaving = $state<boolean>(false);
 let folders = $state<Folder[]>([]);
 let files = $state<File[]>([]);
 let isInitialized = $state<boolean>(false);
-let viewOnlyMode = $state<boolean>(typeof localStorage !== 'undefined' ? localStorage.getItem('viewOnlyMode') === 'true' : false);
-let autoHideUI = $state<boolean>(typeof localStorage !== 'undefined' ? localStorage.getItem('autoHideUI') === 'true' : false);
-let wordWrap = $state<boolean>(typeof localStorage !== 'undefined' ? localStorage.getItem('wordWrap') !== 'false' : true);
-let syncScrollEnabled = $state<boolean>(typeof localStorage !== 'undefined' ? localStorage.getItem('syncScrollEnabled') !== 'false' : true);
+let viewOnlyMode = $state<boolean>(browser ? localStorage.getItem('viewOnlyMode') === 'true' : false);
+let autoHideUI = $state<boolean>(browser ? localStorage.getItem('autoHideUI') === 'true' : false);
+let wordWrap = $state<boolean>(browser ? localStorage.getItem('wordWrap') !== 'false' : true);
+let syncScrollEnabled = $state<boolean>(browser ? localStorage.getItem('syncScrollEnabled') !== 'false' : true);
 
 // Debounce timer
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -143,7 +144,7 @@ async function initialize(): Promise<void> {
     isInitialized = true;
 
     // Try to restore last opened file from localStorage
-    const lastFileId = typeof localStorage !== 'undefined'
+    const lastFileId = browser
         ? localStorage.getItem('lastOpenedFileId')
         : null;
 
@@ -180,7 +181,7 @@ async function selectFile(id: number): Promise<void> {
         dirty = false;
 
         // Persist last opened file to localStorage
-        if (typeof localStorage !== 'undefined') {
+        if (browser) {
             localStorage.setItem('lastOpenedFileId', String(id));
         }
     }
@@ -311,56 +312,56 @@ async function moveFolderToParent(folderId: number, newParentId: number | null):
 
 function toggleViewOnlyMode(): void {
     viewOnlyMode = !viewOnlyMode;
-    if (typeof localStorage !== 'undefined') {
+    if (browser) {
         localStorage.setItem('viewOnlyMode', String(viewOnlyMode));
     }
 }
 
 function setViewOnlyMode(value: boolean): void {
     viewOnlyMode = value;
-    if (typeof localStorage !== 'undefined') {
+    if (browser) {
         localStorage.setItem('viewOnlyMode', String(viewOnlyMode));
     }
 }
 
 function toggleAutoHideUI(): void {
     autoHideUI = !autoHideUI;
-    if (typeof localStorage !== 'undefined') {
+    if (browser) {
         localStorage.setItem('autoHideUI', String(autoHideUI));
     }
 }
 
 function setAutoHideUI(value: boolean): void {
     autoHideUI = value;
-    if (typeof localStorage !== 'undefined') {
+    if (browser) {
         localStorage.setItem('autoHideUI', String(autoHideUI));
     }
 }
 
 function toggleWordWrap(): void {
     wordWrap = !wordWrap;
-    if (typeof localStorage !== 'undefined') {
+    if (browser) {
         localStorage.setItem('wordWrap', String(wordWrap));
     }
 }
 
 function setWordWrap(value: boolean): void {
     wordWrap = value;
-    if (typeof localStorage !== 'undefined') {
+    if (browser) {
         localStorage.setItem('wordWrap', String(wordWrap));
     }
 }
 
 function toggleSyncScroll(): void {
     syncScrollEnabled = !syncScrollEnabled;
-    if (typeof localStorage !== 'undefined') {
+    if (browser) {
         localStorage.setItem('syncScrollEnabled', String(syncScrollEnabled));
     }
 }
 
 function setSyncScroll(value: boolean): void {
     syncScrollEnabled = value;
-    if (typeof localStorage !== 'undefined') {
+    if (browser) {
         localStorage.setItem('syncScrollEnabled', String(syncScrollEnabled));
     }
 }

@@ -260,17 +260,7 @@
 	function handlePreviewPointerOver() { activePane = 'preview'; }
 
 	let measureSectionsTimeout: ReturnType<typeof setTimeout> | null = null;
-	let scrollRemeasureTimeout: ReturnType<typeof setTimeout> | null = null;
 	let isResizingLayout = $derived(isResizingSidebar || isResizingEditor || isResizingTOC);
-
-	// Debounced re-measure to refresh CodeMirror's height map as the user scrolls
-	function scheduleScrollRemeasure() {
-		if (scrollRemeasureTimeout) return;
-		scrollRemeasureTimeout = setTimeout(() => {
-			syncSectionDimensions();
-			scrollRemeasureTimeout = null;
-		}, 120);
-	}
 
 	let cachedScrollMapping = $state<ScrollMappingData | null>(null);
 
@@ -414,55 +404,58 @@
 		if (next) {
 			const editorEnd = next.editorDimension.startOffset;
 			const previewEnd = next.previewDimension.startOffset;
-			const ratio = (editorScrollTop - editorStart) / (editorEnd - editorStart);
+			const editorDiff = editorEnd - editorStart;
+			const ratio = editorDiff > 0 ? (editorScrollTop - editorStart) / editorDiff : 0;
 			return previewStart + ratio * (previewEnd - previewStart);
-		} else {
+			} else {
 			// Last section interpolation to end of doc
-			const editorRatio = (editorScrollTop - editorStart) / (editorMaxScroll - editorStart);
+			const editorRange = editorMaxScroll - editorStart;
+			const editorRatio = editorRange > 0 ? (editorScrollTop - editorStart) / editorRange : 0;
 			return previewStart + editorRatio * (previewMaxScroll - previewStart);
-		}
-	}
+			}
+			}
 
-	// Map scroll position from preview to editor (mirror of above)
-	function syncPreviewToEditor(previewScrollTop: number): number | null {
-		const mapping = cachedScrollMapping;
-		if (!mapping || mapping.sections.length === 0) return null;
-		
-		const editorDims = editorRef?.getScrollDimensions?.();
-		const previewDims = previewRef?.getScrollDimensions?.();
-		if (!editorDims || !previewDims) return null;
+			// Map scroll position from preview to editor (mirror of above)
+			function syncPreviewToEditor(previewScrollTop: number): number | null {
+			const mapping = cachedScrollMapping;
+			if (!mapping || mapping.sections.length === 0) return null;
 
-		const editorMaxScroll = editorDims.scrollHeight - editorDims.clientHeight;
-		const previewMaxScroll = previewDims.scrollHeight - previewDims.clientHeight;
-		const { sections } = mapping;
+			const editorDims = editorRef?.getScrollDimensions?.();
+			const previewDims = previewRef?.getScrollDimensions?.();
+			if (!editorDims || !previewDims) return null;
 
-		if (previewScrollTop <= 0) return 0;
-		if (previewScrollTop >= previewMaxScroll - 1) return editorMaxScroll;
+			const editorMaxScroll = editorDims.scrollHeight - editorDims.clientHeight;
+			const previewMaxScroll = previewDims.scrollHeight - previewDims.clientHeight;
+			const { sections } = mapping;
 
-		// Find section i where previewScrollTop is within [startOffset, nextStartOffset]
-		let i = 0;
-		while (i < sections.length - 1 && previewScrollTop >= sections[i+1].previewDimension.startOffset) {
+			if (previewScrollTop <= 0) return 0;
+			if (previewScrollTop >= previewMaxScroll - 1) return editorMaxScroll;
+
+			// Find section i where previewScrollTop is within [startOffset, nextStartOffset]
+			let i = 0;
+			while (i < sections.length - 1 && previewScrollTop >= sections[i+1].previewDimension.startOffset) {
 			i++;
-		}
+			}
 
-		const curr = sections[i];
-		const next = sections[i + 1];
+			const curr = sections[i];
+			const next = sections[i + 1];
 
-		const previewStart = curr.previewDimension.startOffset;
-		const editorStart = curr.editorDimension.startOffset;
+			const previewStart = curr.previewDimension.startOffset;
+			const editorStart = curr.editorDimension.startOffset;
 
-		if (next) {
+			if (next) {
 			const previewEnd = next.previewDimension.startOffset;
 			const editorEnd = next.editorDimension.startOffset;
-			const ratio = (previewScrollTop - previewStart) / (previewEnd - previewStart);
+			const previewDiff = previewEnd - previewStart;
+			const ratio = previewDiff > 0 ? (previewScrollTop - previewStart) / previewDiff : 0;
 			return editorStart + ratio * (editorEnd - editorStart);
-		} else {
+			} else {
 			// Last section interpolation to end of doc
-			const previewRatio = (previewScrollTop - previewStart) / (previewMaxScroll - previewStart);
+			const previewRange = previewMaxScroll - previewStart;
+			const previewRatio = previewRange > 0 ? (previewScrollTop - previewStart) / previewRange : 0;
 			return editorStart + previewRatio * (editorMaxScroll - editorStart);
-		}
-	}
-
+			}
+			}
 	// Real-time scroll sync: Editor → Preview
 	function handleEditorScroll(scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number }) {
 		if (!appState.syncScrollEnabled || activePane !== 'editor' || isResizingLayout) return;
