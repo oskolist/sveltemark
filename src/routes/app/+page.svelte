@@ -313,6 +313,33 @@
 	// Track last scroll positions to avoid micro-updates
 	let lastEditorScrollTop = 0;
 	let lastPreviewScrollTop = 0;
+
+	let editorScrollRAF: number | null = null;
+	let previewScrollRAF: number | null = null;
+
+	function applyPreviewScroll(scrollTop: number, isPercent = false) {
+		if (previewScrollRAF) cancelAnimationFrame(previewScrollRAF);
+		previewScrollRAF = requestAnimationFrame(() => {
+			if (isPercent) {
+				previewRef?.scrollToPercent(scrollTop);
+			} else {
+				previewRef?.scrollToOffset(scrollTop);
+			}
+			previewScrollRAF = null;
+		});
+	}
+
+	function applyEditorScroll(scrollTop: number, isPercent = false) {
+		if (editorScrollRAF) cancelAnimationFrame(editorScrollRAF);
+		editorScrollRAF = requestAnimationFrame(() => {
+			if (isPercent) {
+				editorRef?.scrollToPercent(scrollTop);
+			} else {
+				editorRef?.scrollToOffset(scrollTop);
+			}
+			editorScrollRAF = null;
+		});
+	}
 	
 	// Dynamic scroll threshold based on viewport (0.05% of client height, min 0.5px, max 2px)
 	function getScrollSyncThreshold(): number {
@@ -448,12 +475,12 @@
 		// Use StackEdit-style section-based sync
 		const targetScroll = syncEditorToPreview(scrollInfo.scrollTop);
 		if (targetScroll !== null && previewRef) {
-			previewRef.scrollToOffset(targetScroll);
+			applyPreviewScroll(targetScroll);
 		} else {
 			// Fallback to percentage-based
 			const maxScroll = scrollInfo.scrollHeight - scrollInfo.clientHeight;
 			const percent = maxScroll > 0 ? scrollInfo.scrollTop / maxScroll : 0;
-			previewRef?.scrollToPercent(percent);
+			applyPreviewScroll(percent, true);
 		}
 	}
 
@@ -469,12 +496,12 @@
 		// Use StackEdit-style section-based sync
 		const targetScroll = syncPreviewToEditor(scrollInfo.scrollTop);
 		if (targetScroll !== null && editorRef) {
-			editorRef.scrollToOffset(targetScroll);
+			applyEditorScroll(targetScroll);
 		} else {
 			// Fallback to percentage-based
 			const maxScroll = scrollInfo.scrollHeight - scrollInfo.clientHeight;
 			const percent = maxScroll > 0 ? scrollInfo.scrollTop / maxScroll : 0;
-			editorRef?.scrollToPercent(percent);
+			applyEditorScroll(percent, true);
 		}
 	}
 
