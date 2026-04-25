@@ -44,10 +44,10 @@
 	// Track active heading on scroll
 	function updateActiveHeading() {
 		if (tocItems.length === 0) return;
-		
+
 		const previewPane = document.querySelector('.preview-pane');
 		if (!previewPane) return;
-		
+
 		const headings = tocItems.map(item => document.getElementById(item.id)).filter(Boolean) as HTMLElement[];
 		if (headings.length === 0) return;
 
@@ -140,7 +140,7 @@
 		};
 		checkMobile();
 		window.addEventListener('resize', checkMobile);
-		
+
 		// Re-measure sections on window resize (affects wrapped text)
 		let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
 		const handleResize = () => {
@@ -150,7 +150,7 @@
 			}, 200);
 		};
 		window.addEventListener('resize', handleResize);
-		
+
 		return () => {
 			window.removeEventListener('resize', checkMobile);
 			window.removeEventListener('resize', handleResize);
@@ -163,7 +163,7 @@
 	const DEFAULT_EDITOR_PERCENT = 50;
 	const DEFAULT_SHOW_SIDEBAR = true;
 	const DEFAULT_TOC_WIDTH = 250;
-	
+
 	let sidebarWidth = $state(DEFAULT_SIDEBAR_WIDTH);
 	let editorWidthPercent = $state(DEFAULT_EDITOR_PERCENT);
 	let tocWidth = $state(DEFAULT_TOC_WIDTH);
@@ -213,7 +213,7 @@
 		loadLayoutState();
 		loadTOCState();
 		await appState.initialize();
-		
+
 		// Initial section measurement after a short delay to ensure DOM is ready
 		setTimeout(() => {
 			syncSectionDimensions();
@@ -224,7 +224,7 @@
 	$effect(() => {
 		// Access wordWrap to create dependency
 		const _wordWrap = appState.wordWrap;
-		
+
 		// Use animation frames to allow editor to update its layout
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
@@ -240,10 +240,10 @@
 		// Create dependencies on layout changes that affect width
 		const _showDesktopSidebar = showDesktopSidebar;
 		const _viewOnlyMode = appState.viewOnlyMode;
-		
+
 		// Skip initial run
 		if (!editorRef || !previewRef) return;
-		
+
 		// Use animation frames to allow layout to settle
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
@@ -270,7 +270,7 @@
 
 	function handleEditorChange(content: string) {
 		appState.updateBuffer(content);
-		
+
 		// Schedule section measurement after content changes
 		if (measureSectionsTimeout) {
 			clearTimeout(measureSectionsTimeout);
@@ -283,15 +283,15 @@
 	// Sync section dimensions between editor and preview
 	function syncSectionDimensions() {
 		if (!editorRef || !previewRef) return;
-		
+
 		// Get section info from preview (which has the block line ranges)
 		const previewSections = previewRef.getSectionInfo?.() || [];
-		
+
 		if (previewSections.length > 0) {
 			// Measure corresponding sections in editor
-			const sections = previewSections.map(s => ({ 
-				startLine: s.startLine, 
-				endLine: s.endLine 
+			const sections = previewSections.map(s => ({
+				startLine: s.startLine,
+				endLine: s.endLine
 			}));
 			editorRef.measureSections?.(sections);
 		}
@@ -330,7 +330,7 @@
 			editorScrollRAF = null;
 		});
 	}
-	
+
 	// Dynamic scroll threshold based on viewport (0.05% of client height, min 0.5px, max 2px)
 	function getScrollSyncThreshold(): number {
 		const editorDims = editorRef?.getScrollDimensions?.();
@@ -353,19 +353,19 @@
 	function buildScrollMapping(): ScrollMappingData | null {
 		const editorSections = editorRef?.getEditorSections?.() || [];
 		const previewSections = previewRef?.getSectionInfo?.() || [];
-		
+
 		if (editorSections.length === 0 || previewSections.length === 0) return null;
-		
+
 		const numSections = Math.min(editorSections.length, previewSections.length);
 		const sections: SectionDesc[] = [];
-		
+
 		for (let i = 0; i < numSections; i++) {
 			sections.push({
 				editorDimension: editorSections[i].editorDimension,
 				previewDimension: previewSections[i].previewDimension
 			});
 		}
-		
+
 		return { sections };
 	}
 
@@ -377,7 +377,7 @@
 	function syncEditorToPreview(editorScrollTop: number): number | null {
 		const mapping = cachedScrollMapping;
 		if (!mapping || mapping.sections.length === 0) return null;
-		
+
 		const editorDims = editorRef?.getScrollDimensions?.();
 		const previewDims = previewRef?.getScrollDimensions?.();
 		if (!editorDims || !previewDims) return null;
@@ -459,12 +459,12 @@
 	// Real-time scroll sync: Editor → Preview
 	function handleEditorScroll(scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number }) {
 		if (!appState.syncScrollEnabled || activePane !== 'editor' || isResizingLayout) return;
-		
+
 		// Skip micro-updates
 		const threshold = getScrollSyncThreshold();
 		if (Math.abs(scrollInfo.scrollTop - lastEditorScrollTop) < threshold) return;
 		lastEditorScrollTop = scrollInfo.scrollTop;
-		
+
 		// Use StackEdit-style section-based sync
 		const targetScroll = syncEditorToPreview(scrollInfo.scrollTop);
 		if (targetScroll !== null && previewRef) {
@@ -480,12 +480,12 @@
 	// Real-time scroll sync: Preview → Editor (StackEdit-style)
 	function handlePreviewScroll(scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number }) {
 		if (!appState.syncScrollEnabled || activePane !== 'preview' || isResizingLayout) return;
-		
+
 		// Skip micro-updates
 		const threshold = getScrollSyncThreshold();
 		if (Math.abs(scrollInfo.scrollTop - lastPreviewScrollTop) < threshold) return;
 		lastPreviewScrollTop = scrollInfo.scrollTop;
-		
+
 		// Use StackEdit-style section-based sync
 		const targetScroll = syncPreviewToEditor(scrollInfo.scrollTop);
 		if (targetScroll !== null && editorRef) {
@@ -511,7 +511,7 @@
 
 		// Check if hovering over a dropdown menu or toolbar
 		const target = event.target as HTMLElement;
-		const isInDropdown = target.closest('.dropdown-menu') !== null || 
+		const isInDropdown = target.closest('.dropdown-menu') !== null ||
 		                     target.closest('.toolbar') !== null ||
 		                     target.closest('.toolbar-row') !== null;
 
@@ -543,9 +543,9 @@
 				<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 				<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
 				<style>
-					body { 
-						padding: 40px; 
-						max-width: 900px; 
+					body {
+						padding: 40px;
+						max-width: 900px;
 						margin: 0 auto;
 						background: white;
 						color: #24292f;
@@ -596,6 +596,7 @@
 						max-height: 100% !important;
 						display: block;
 						margin: 0 auto;
+						overflow: visible !important;
 					}
 					/* KaTeX display math styling */
 					.katex-display {
@@ -643,9 +644,9 @@
 			</body>
 			</html>
 		`);
-		
+
 		printWindow.document.close();
-		
+
 		// Wait for stylesheets and fonts to load before printing
 		setTimeout(() => {
 			printWindow.print();
@@ -706,7 +707,7 @@
 			const newWidth = Math.max(150, Math.min(500, event.clientX));
 			sidebarWidth = newWidth;
 		}
-		
+
 		if (isResizingEditor) {
 			const container = document.querySelector('.editor-preview-container') as HTMLElement;
 			if (container) {
@@ -734,7 +735,7 @@
 			document.body.style.cursor = '';
 			document.body.style.userSelect = '';
 			saveLayoutState();
-			
+
 			// Re-measure sections after resize (affects wrapped text width)
 			if (needsRemeasure) {
 				// Use multiple animation frames to ensure layout has settled
@@ -751,11 +752,11 @@
 
 	// Import backup from empty state
 	let emptyStateFileInput = $state<HTMLInputElement | null>(null);
-	
+
 	function handleEmptyStateImportClick() {
 		emptyStateFileInput?.click();
 	}
-	
+
 	async function handleEmptyStateImportFile(event: Event) {
 		const target = event.target as HTMLInputElement;
 		const file = target.files?.[0];
@@ -774,14 +775,14 @@
 		reader.readAsText(file);
 		target.value = '';
 	}
-	
+
 	async function handleEmptyStateNewFile() {
 		await appState.newFile(null, 'Untitled');
 	}
 </script>
 
-<svelte:window 
-	onkeydown={handleKeydown} 
+<svelte:window
+	onkeydown={handleKeydown}
 	onmousemove={(e) => { handleMouseMove(e); handleResizeMove(e); }}
 	onmouseup={handleResizeEnd}
 />
@@ -791,17 +792,17 @@
 		<!-- Mobile sidebar overlay -->
 		{#if isMobile && showMobileSidebar}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<div 
-				class="mobile-overlay" 
+			<div
+				class="mobile-overlay"
 				onclick={() => { showMobileSidebar = false; }}
 				role="button"
 				tabindex="-1"
 				aria-label="Close sidebar"
 			></div>
 		{/if}
-		
-		<div 
-			class="sidebar-wrapper" 
+
+		<div
+			class="sidebar-wrapper"
 			class:hidden={isMobile ? !showMobileSidebar : (appState.autoHideUI ? !showSidebar : !showDesktopSidebar)}
 			class:mobile-sidebar={isMobile}
 			style={isMobile ? '' : `width: ${appState.autoHideUI ? (showSidebar ? sidebarWidth : 0) : (showDesktopSidebar ? sidebarWidth : 0)}px;`}
@@ -809,7 +810,7 @@
 			<Sidebar />
 			{#if !isMobile && (appState.autoHideUI ? showSidebar : showDesktopSidebar)}
 				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-				<div 
+				<div
 					class="resize-handle resize-handle-sidebar"
 					onmousedown={startSidebarResize}
 					role="separator"
@@ -822,8 +823,8 @@
 	<main class="main-content">
 		{#if appState.activeFile}
 			<div class="toolbar-row" class:hidden={appState.autoHideUI && !showToolbar}>
-				<button 
-					class="sidebar-toggle-btn" 
+				<button
+					class="sidebar-toggle-btn"
 					title={isMobile ? 'Toggle sidebar' : (showDesktopSidebar ? 'Hide sidebar' : 'Show sidebar')}
 					onclick={() => {
 						if (isMobile) {
@@ -840,10 +841,10 @@
 				</button>
 				<Toolbar editor={editorRef} onPrint={handlePrint} onResetLayout={resetLayout} />
 				<div class="status-area">
-					<button 
-						class="toc-btn" 
+					<button
+						class="toc-btn"
 						class:active={showTOC}
-						title="Table of Contents" 
+						title="Table of Contents"
 						onclick={() => { showTOC = !showTOC; saveTOCState(); }}
 						disabled={tocItems.length === 0}
 					>
@@ -851,8 +852,8 @@
 							<path d="M2 4a1 1 0 100-2 1 1 0 000 2zm3.75-1.5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zM3 8a1 1 0 11-2 0 1 1 0 012 0zm-1 6a1 1 0 100-2 1 1 0 000 2z"/>
 						</svg>
 					</button>
-					<button 
-						class="view-toggle-btn" 
+					<button
+						class="view-toggle-btn"
 						class:active={appState.viewOnlyMode}
 						title={appState.viewOnlyMode ? 'Switch to Edit Mode' : 'Switch to View Only'}
 						onclick={() => appState.toggleViewOnlyMode()}
@@ -869,6 +870,9 @@
 					</button>
 					{#if appState.viewOnlyMode}
 						<span class="view-mode-badge">View Only</span>
+					{/if}
+					{#if !appState.viewOnlyMode}
+	                     <span class="view-mode-badge" style="background-color: #238636;">Edit Mode</span>
 					{/if}
 					<span class="file-name">{appState.activeFile.title}</span>
 					{#if appState.dirty}
@@ -895,7 +899,7 @@
 							/>
 						</div>
 						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-						<div 
+						<div
 							class="resize-handle resize-handle-editor"
 							onmousedown={startEditorResize}
 							role="separator"
@@ -941,7 +945,7 @@
 				{#if showTOC && tocItems.length > 0}
 					<aside class="toc-panel" style="width: {tocWidth}px;">
 						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-						<div 
+						<div
 							class="toc-resize-handle"
 							onmousedown={startTOCResize}
 							role="separator"
@@ -956,8 +960,8 @@
 							</button>
 						</div>
 						<nav class="toc-list">
-							{#each tocItems as item}
-								<button 
+							{#each tocItems as item (item.id)}
+								<button
 									class="toc-item toc-level-{item.level}"
 									class:active={activeHeadingId === item.id}
 									onclick={() => scrollToHeading(item.id)}
@@ -1000,9 +1004,9 @@
 					</div>
 					<p class="hint">Or select a file from the sidebar</p>
 				</div>
-				<input 
-					type="file" 
-					accept=".json" 
+				<input
+					type="file"
+					accept=".json"
 					bind:this={emptyStateFileInput}
 					onchange={handleEmptyStateImportFile}
 					style="display: none;"
@@ -1170,8 +1174,8 @@
 		height: 28px;
 		padding: 0;
 		border: none;
-		background: transparent;
-		color: #8b949e;
+		background: #1f6feb;
+		color: #ffffff;
 		cursor: pointer;
 		border-radius: 4px;
 		transition: background-color 0.15s, color 0.15s;

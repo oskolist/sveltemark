@@ -249,13 +249,17 @@
 	async function renderMermaidDiagrams() {
 		if (!previewContainer) return;
 		
+		// Ensure fonts are loaded before rendering to prevent text cutting
+		await document.fonts.ready;
+		
 		const mermaidDivs = previewContainer.querySelectorAll('.mermaid:not([data-rendered])');
 		for (const div of mermaidDivs) {
 			const code = div.getAttribute('data-mermaid');
 			if (code) {
 				try {
 					const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-					const { svg } = await mermaid.render(id, code);
+					// Pass the container element so mermaid can inherit its font-family
+					const { svg } = await mermaid.render(id, code, div as HTMLElement);
 					div.innerHTML = svg;
 					div.setAttribute('data-rendered', 'true');
 				} catch (err) {
@@ -540,6 +544,9 @@
 	export async function getHTMLForPrint(): Promise<string> {
 		if (!previewContainer) return blocks.map(b => b.html).join('\n');
 		
+		// Ensure fonts are loaded before rendering for print
+		await document.fonts.ready;
+		
 		// Clone the content
 		const clone = previewContainer.cloneNode(true) as HTMLDivElement;
 		
@@ -560,7 +567,8 @@
 						wrap: true
 					});
 					const id = `mermaid-print-${Math.random().toString(36).substr(2, 9)}`;
-					const { svg } = await mermaid.render(id, code);
+					// Pass the original div for font inheritance context
+					const { svg } = await mermaid.render(id, code, div as HTMLElement);
 					div.innerHTML = svg;
 					
 					// Normalize the SVG for better print output
@@ -755,6 +763,10 @@
 		border-radius: 6px;
 		margin: 0 0 16px 0;
 		text-align: center;
+	}
+
+	.preview-container :global(.mermaid svg) {
+		overflow: visible !important;
 	}
 
 	.preview-container :global(.mermaid-error) {
